@@ -2,10 +2,9 @@ import os
 import shutil
 import click
 
-from .config_handler import get_clusters, get_current_kube, get_kube_auto_keep, \
-    get_current_kube_path, is_cluster_exist, kube_auto_keep, remove_cluster_directory, \
-    set_clusters, set_current_kube, set_kube_auto_keep, get_current_kube_path, \
-    YES, CLUSTERS_PATH
+from .config import Config
+from .util import save_configuration, setup_kube_auto_keep, remove_cluster_directory, \
+    YES, CLUSTERS_PATH, DEFAULT_KUBECONFIG_PATH
 from tabulate import tabulate
 from subprocess import call
 
@@ -21,7 +20,8 @@ class AOCGroup(click.Group):
 
 @click.group(cls=AOCGroup)
 @click.version_option()
-def main():
+@click.pass_context
+def main(ctx):
     """\b
     __ _  ___   ___ 
    / _` |/ _ \ / __|
@@ -30,17 +30,18 @@ def main():
 
     Multi-cluster management tool
     """
-    pass
+    ctx.obj = Config()
 
 
 @main.command()
-def list():
+@click.pass_obj
+def list(config):
     """
     Show list of kubeconfigs
     """
     headers = ['Name', 'Path', 'Current']
-    clusters = get_clusters()
-    current_kube = get_current_kube()
+    clusters = config.get_clusters()
+    current_kube = config.to_dict()['current_kube']
     clusters = [[cluster[0], cluster[1], YES if cluster[0]
                  == current_kube else ''] for cluster in clusters]
     print(tabulate(clusters, headers, tablefmt="pretty"))
@@ -51,30 +52,35 @@ def list():
 @click.option('--path', '-p', required=True, type=click.Path(exists=True), help="Kubeconfig path.")
 @click.option('--current', '-c', is_flag=True, help="Set this kubeconfig as current kubeconfig.")
 @click.option('--keep', '-k', is_flag=True, help="Move kubeconfig to ~/.aoc.")
-@click.pass_context
-def add_kube(ctx, name, path, current, keep):
+@click.pass_obj
+def add_kube(config, name, path, current, keep):
     """
     Add a new cluster to aoc
     """
-    clusters = dict(get_clusters())
-    if keep or get_kube_auto_keep():
-        path = kube_auto_keep(name, path)
+    aoc_config = config.to_dict()
+    clusters = aoc_config.get('clusters', {'default': DEFAULT_KUBECONFIG_PATH})
+    if keep or aoc_config.get('kube_auto_keep', False):
+        path = setup_kube_auto_keep(name, path)
     clusters[name] = path
-    set_clusters(clusters)
-    if not is_cluster_exist(get_current_kube()):
-        ctx.invoke(switch_kube, name=name)
+    if not config.is_cluster_exist(aoc_config.get('current_kube', 'default')):
+        aoc_config['current_kube'] = name
     if current:
-        ctx.invoke(switch_kube, name=name)
+        aoc_config['current_kube'] = name
+    aoc_config['clusters'] = clusters
+    save_configuration(aoc_config)
 
 
 @main.command()
 @click.argument('name', required=True, type=str)
-def switch_kube(name):
+@click.pass_obj
+def switch_kube(config, name):
     """
     Set the current kube
     """
-    if is_cluster_exist(name):
-        set_current_kube(name)
+    aoc_config = config.to_dict()
+    if config.is_cluster_exist(name):
+        aoc_config['current_kube'] = name
+        save_configuration(aoc_config)
     else:
         click.secho(
             "[ERROR] Cluster can't be found, try to add it first.", fg='red')
@@ -83,19 +89,21 @@ def switch_kube(name):
 @main.command()
 @click.argument('name', required=True, type=str)
 @click.option('--yes', '-y', is_flag=True)
-@click.pass_context
-def delete_kube(ctx, name, yes):
+@click.pass_obj
+def delete_kube(config, name, yes):
     """
     Remove a cluster from aoc
     """
     if not yes:
         click.confirm(f'Remove {name}?', abort=True)
-    if is_cluster_exist(name):
-        clusters = dict(get_clusters())
+    aoc_config = config.to_dict()
+    if config.is_cluster_exist(name):
+        clusters = config.get_clusters_json()
         clusters.pop(name, None)
-        set_clusters(clusters)
-        if get_current_kube() == name and clusters:
-            ctx.invoke(switch_kube, name=next(iter(clusters)))
+        aoc_config['clusters'] = clusters
+        if config.current_kube == name and clusters:
+            aoc_config['current_kube'] = next(iter(clusters))
+        save_configuration(aoc_config)
         remove_cluster_directory(name)
     else:
         click.secho(f"[INFO] No such cluster {name}", fg='blue')
@@ -104,14 +112,16 @@ def delete_kube(ctx, name, yes):
 @main.command()
 @click.argument('current_name', required=True, type=str)
 @click.argument('future_name', required=True, type=str)
-def rename_kube(current_name, future_name):
-    clusters = dict(get_clusters())
+@click.pass_obj
+def rename_kube(config, current_name, future_name):
+    aoc_config = config.to_dict()
+    clusters = config.get_clusters_json()
     current_path = clusters.pop(current_name, None)
     aoc_current_path = os.path.join(CLUSTERS_PATH, current_name)
     current_kubeconfig_aoc_path = os.path.join(aoc_current_path, 'kubeconfig')
 
-    if current_name == get_current_kube():
-        set_current_kube(future_name)
+    if current_name == aoc_config.get('current_kube', 'default'):
+        aoc_config['current_kube'] = future_name
     if current_kubeconfig_aoc_path == current_path:
         try:
             aoc_new_path = os.path.join(CLUSTERS_PATH, future_name)
@@ -121,17 +131,21 @@ def rename_kube(current_name, future_name):
             click.echo(e.strerror)
     else:
         clusters[future_name] = current_path
-    set_clusters(clusters)
+    aoc_config['clusters'] = clusters
+    save_configuration(aoc_config)
 
 
 @main.command()
 @click.option('--yes/--no', default=None)
-def auto_keep(yes):
+@click.pass_obj
+def auto_keep(config, yes):
     """
     Enable/disable auto keep
     """
+    aoc_config = config.to_dict()
     if yes is not None:
-        set_kube_auto_keep(yes)
+        aoc_config['kube_auto_keep'] = yes
+        save_configuration(aoc_config)
 
 
 @click.command(context_settings=dict(
@@ -139,5 +153,7 @@ def auto_keep(yes):
 ))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def runner(args):
-    os.environ['KUBECONFIG'] = get_current_kube_path()
+    config = Config()
+    clusters = config.get_clusters_json()
+    os.environ['KUBECONFIG'] = clusters.get(config.current_kube, DEFAULT_KUBECONFIG_PATH)
     call(args=['oc'] + [arg for arg in args], env=os.environ)
