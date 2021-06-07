@@ -1,4 +1,5 @@
 import os
+import shutil
 import click
 
 from .config_handler import *
@@ -24,7 +25,7 @@ def main():
   | (_| | (_) | (__ 
    \__,_|\___/ \___|
 
-    Multi-cluster managment
+    Multi-cluster management tool
     """
     pass
 
@@ -96,6 +97,28 @@ def delete_kube(ctx, name, yes):
     else:
         click.secho(f"[INFO] No such cluster {name}", fg='blue')
 
+
+@main.command()
+@click.argument('current_name', required=True, type=str)
+@click.argument('future_name', required=True, type=str)
+def rename_kube(current_name, future_name):
+    clusters = dict(get_clusters())
+    current_path = clusters.pop(current_name, None)
+    aoc_current_path = os.path.join(CLUSTERS_PATH, current_name)
+    current_kubeconfig_aoc_path = os.path.join(aoc_current_path, 'kubeconfig')
+
+    if current_name == get_current_kube():
+        set_current_kube(future_name)
+    if current_kubeconfig_aoc_path == current_path:
+        try:
+            aoc_new_path = os.path.join(CLUSTERS_PATH, future_name)
+            shutil.move(aoc_current_path, aoc_new_path)
+            clusters[future_name] = os.path.join(aoc_new_path, 'kubeconfig')
+        except Error as e:
+            click.echo(e.strerror)
+    else:
+        clusters[future_name] = current_path
+    set_clusters(clusters)
 
 @main.command()
 @click.option('--yes/--no', default=None)

@@ -5,6 +5,7 @@ from pathlib import Path
 
 DEFAULT_KUBECONFIG_PATH = os.path.join(str(Path.home()), '.kube', 'config')
 AOC_PATH = os.path.join(str(Path.home()), '.aoc')
+CLUSTERS_PATH = os.path.join(AOC_PATH, 'clusters')
 DEFAULT_CONFIG_PATH = os.path.join(AOC_PATH, 'config.yaml')
 YES = '✔'
 NO = '✗'
@@ -68,7 +69,14 @@ def get_current_kube_path():
     Get the current kube path from aoc configuration file
     """
     current_kube = get_current_kube()
-    return dict(get_clusters()).get(current_kube, DEFAULT_KUBECONFIG_PATH)
+    return get_cluster_path(current_kube)
+
+
+def get_cluster_path(kube_name):
+    """
+    Get the cluster path
+    """
+    return dict(get_clusters()).get(kube_name, DEFAULT_KUBECONFIG_PATH)
 
 
 def set_kube_auto_keep(kube_auto_keep, config=None):
@@ -129,7 +137,7 @@ def kube_auto_keep(kube_name, kube_path):
     Creates ~/.aoc/clusters/<kube_path> directory if not exist
     overwrite ~/.aoc/clusters/<kube_path>/kubeconfig
     """
-    dir_path = os.path.join(AOC_PATH, 'clusters', kube_name)
+    dir_path = os.path.join(CLUSTERS_PATH, kube_name)
     config_path = os.path.join(dir_path, 'kubeconfig')
     Path(dir_path).mkdir(parents=True, exist_ok=True)
     Path(config_path).touch(exist_ok=True)
