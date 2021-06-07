@@ -92,6 +92,7 @@ def delete_kube(ctx, name, yes):
         set_clusters(clusters)
         if get_current_kube() == name and clusters:
             ctx.invoke(switch_kube, name=next(iter(clusters)))
+        remove_cluster_directory(name)
     else:
         click.secho(f"[INFO] No such cluster {name}", fg='blue')
 

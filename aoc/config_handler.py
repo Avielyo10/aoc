@@ -1,6 +1,6 @@
 import os
 import yaml
-from shutil import move, Error
+from shutil import move, rmtree, Error
 from pathlib import Path
 
 DEFAULT_KUBECONFIG_PATH = os.path.join(str(Path.home()), '.kube', 'config')
@@ -125,6 +125,10 @@ def is_cluster_exist(kube_name):
 
 
 def kube_auto_keep(kube_name, kube_path):
+    """
+    Creates ~/.aoc/clusters/<kube_path> directory if not exist
+    overwrite ~/.aoc/clusters/<kube_path>/kubeconfig
+    """
     dir_path = os.path.join(AOC_PATH, 'clusters', kube_name)
     config_path = os.path.join(dir_path, 'kubeconfig')
     Path(dir_path).mkdir(parents=True, exist_ok=True)
@@ -134,3 +138,11 @@ def kube_auto_keep(kube_name, kube_path):
     except Error as e:
         print(e.strerror)
     return config_path
+
+
+def remove_cluster_directory(kube_name):
+    """
+    Remove cluster directory from ~/.aoc/clusters/
+    """
+    dir_path = os.path.join(AOC_PATH, 'clusters', kube_name)
+    rmtree(dir_path, ignore_errors=True)
