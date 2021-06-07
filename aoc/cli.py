@@ -2,7 +2,10 @@ import os
 import shutil
 import click
 
-from .config_handler import *
+from .config_handler import get_clusters, get_current_kube, get_kube_auto_keep, \
+    get_current_kube_path, is_cluster_exist, kube_auto_keep, remove_cluster_directory, \
+    set_clusters, set_current_kube, set_kube_auto_keep, get_current_kube_path, \
+    YES, CLUSTERS_PATH
 from tabulate import tabulate
 from subprocess import call
 
@@ -114,11 +117,12 @@ def rename_kube(current_name, future_name):
             aoc_new_path = os.path.join(CLUSTERS_PATH, future_name)
             shutil.move(aoc_current_path, aoc_new_path)
             clusters[future_name] = os.path.join(aoc_new_path, 'kubeconfig')
-        except Error as e:
+        except shutil.Error as e:
             click.echo(e.strerror)
     else:
         clusters[future_name] = current_path
     set_clusters(clusters)
+
 
 @main.command()
 @click.option('--yes/--no', default=None)
