@@ -114,6 +114,9 @@ def delete_kube(config, name, yes):
 @click.argument('future_name', required=True, type=str)
 @click.pass_obj
 def rename_kube(config, current_name, future_name):
+    """
+    Rename cluster
+    """
     aoc_config = config.to_dict()
     clusters = config.get_clusters_json()
     current_path = clusters.pop(current_name, None)
