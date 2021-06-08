@@ -28,12 +28,6 @@ class Config():
             clusters.append([name, path])
         return clusters
 
-    def get_clusters_json(self) -> dict:
-        """
-        Get a list of clusters & their paths
-        """
-        return dict(self.get_clusters())
-
     def is_cluster_exist(self, kube_name) -> bool:
         """
         Lookup for the cluster in config

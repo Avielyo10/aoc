@@ -98,7 +98,7 @@ def delete_kube(config, name, yes):
         click.confirm(f'Remove {name}?', abort=True)
     aoc_config = config.to_dict()
     if config.is_cluster_exist(name):
-        clusters = config.get_clusters_json()
+        clusters = config.clusters
         clusters.pop(name, None)
         aoc_config['clusters'] = clusters
         if config.current_kube == name and clusters:
@@ -118,7 +118,7 @@ def rename_kube(config, current_name, future_name):
     Rename cluster
     """
     aoc_config = config.to_dict()
-    clusters = config.get_clusters_json()
+    clusters = config.clusters
     current_path = clusters.pop(current_name, None)
     aoc_current_path = os.path.join(CLUSTERS_PATH, current_name)
     current_kubeconfig_aoc_path = os.path.join(aoc_current_path, 'kubeconfig')
@@ -157,7 +157,7 @@ def auto_keep(config, yes):
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def runner(args):
     config = Config()
-    clusters = config.get_clusters_json()
+    clusters = config.clusters
     os.environ['KUBECONFIG'] = clusters.get(
         config.current_kube, DEFAULT_KUBECONFIG_PATH)
     call(args=['oc'] + [arg for arg in args], env=os.environ)
