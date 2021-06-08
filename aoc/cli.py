@@ -15,7 +15,7 @@ class AOCGroup(click.Group):
         if rv is not None:
             return rv
         else:
-            return runner()
+            return oc_runner()
 
 
 @click.group(cls=AOCGroup)
@@ -161,7 +161,7 @@ def auto_keep(config, yes):
     ignore_unknown_options=True, allow_extra_args=True
 ))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
-def runner(args):
+def oc_runner(args):
     config = Config()
     clusters = config.clusters
     os.environ['KUBECONFIG'] = clusters.get(
