@@ -9,6 +9,9 @@ class Config():
         self.current_kube = json_conf['current_kube']
 
     def to_dict(self) -> dict:
+        """
+        Convert the configuration into a dictionary
+        """
         config = {
             'kube_auto_keep': self.kube_auto_keep,
             'clusters': self.clusters,

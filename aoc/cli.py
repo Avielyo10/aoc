@@ -158,5 +158,6 @@ def auto_keep(config, yes):
 def runner(args):
     config = Config()
     clusters = config.get_clusters_json()
-    os.environ['KUBECONFIG'] = clusters.get(config.current_kube, DEFAULT_KUBECONFIG_PATH)
+    os.environ['KUBECONFIG'] = clusters.get(
+        config.current_kube, DEFAULT_KUBECONFIG_PATH)
     call(args=['oc'] + [arg for arg in args], env=os.environ)
