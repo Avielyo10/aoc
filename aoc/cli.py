@@ -77,13 +77,12 @@ def switch_kube(config, name):
     """
     Set the current kube
     """
-    aoc_config = config.to_dict()
     if config.is_cluster_exist(name):
+        aoc_config = config.to_dict()
         aoc_config['current_kube'] = name
         save_configuration(aoc_config)
     else:
-        click.secho(
-            "[ERROR] Cluster can't be found, try to add it first.", fg='red')
+        click.secho(f"[ERROR] No such cluster {name}", fg='red', bold=True)
 
 
 @main.command()
@@ -96,8 +95,8 @@ def delete_kube(config, name, yes):
     """
     if not yes:
         click.confirm(f'Remove {name}?', abort=True)
-    aoc_config = config.to_dict()
     if config.is_cluster_exist(name):
+        aoc_config = config.to_dict()
         clusters = config.clusters
         clusters.pop(name, None)
         aoc_config['clusters'] = clusters
@@ -106,7 +105,7 @@ def delete_kube(config, name, yes):
         save_configuration(aoc_config)
         remove_cluster_directory(name)
     else:
-        click.secho(f"[INFO] No such cluster {name}", fg='blue')
+        click.secho(f"[ERROR] No such cluster {name}", fg='red', bold=True)
 
 
 @main.command()
@@ -117,25 +116,30 @@ def rename_kube(config, current_name, future_name):
     """
     Rename cluster
     """
-    aoc_config = config.to_dict()
-    clusters = config.clusters
-    current_path = clusters.pop(current_name, None)
-    aoc_current_path = os.path.join(CLUSTERS_PATH, current_name)
-    current_kubeconfig_aoc_path = os.path.join(aoc_current_path, 'kubeconfig')
+    if config.is_cluster_exist(current_name):
+        aoc_config = config.to_dict()
+        clusters = config.clusters
+        current_path = clusters.pop(current_name, None)
+        aoc_current_path = os.path.join(CLUSTERS_PATH, current_name)
+        current_kubeconfig_aoc_path = os.path.join(
+            aoc_current_path, 'kubeconfig')
 
-    if current_name == aoc_config.get('current_kube', 'default'):
-        aoc_config['current_kube'] = future_name
-    if current_kubeconfig_aoc_path == current_path:
-        try:
-            aoc_new_path = os.path.join(CLUSTERS_PATH, future_name)
-            shutil.move(aoc_current_path, aoc_new_path)
-            clusters[future_name] = os.path.join(aoc_new_path, 'kubeconfig')
-        except shutil.Error as e:
-            click.echo(e.strerror)
+        if current_name == aoc_config.get('current_kube', 'default'):
+            aoc_config['current_kube'] = future_name
+        if current_kubeconfig_aoc_path == current_path:
+            try:
+                aoc_new_path = os.path.join(CLUSTERS_PATH, future_name)
+                shutil.move(aoc_current_path, aoc_new_path)
+                clusters[future_name] = os.path.join(
+                    aoc_new_path, 'kubeconfig')
+            except shutil.Error as e:
+                click.echo(e.strerror)
+        else:
+            clusters[future_name] = current_path
+        aoc_config['clusters'] = clusters
+        save_configuration(aoc_config)
     else:
-        clusters[future_name] = current_path
-    aoc_config['clusters'] = clusters
-    save_configuration(aoc_config)
+        click.secho(f"[ERROR] No such cluster {current_name}", fg='red', bold=True)
 
 
 @main.command()
@@ -145,10 +149,12 @@ def auto_keep(config, yes):
     """
     Enable/disable auto keep
     """
-    aoc_config = config.to_dict()
     if yes is not None:
+        aoc_config = config.to_dict()
         aoc_config['kube_auto_keep'] = yes
         save_configuration(aoc_config)
+    else:
+        click.secho(f"[INFO] Try running `aoc auto-keep --yes` or `aoc auto-keep --no`", fg='blue', bold=True)
 
 
 @click.command(context_settings=dict(
