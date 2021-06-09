@@ -44,8 +44,8 @@ def save_configuration(configuration):
 
 def setup_kube_auto_keep(kube_name, kube_path):
     """
-    Creates ~/.aoc/clusters/<kube_path> directory if not exist
-    overwrite ~/.aoc/clusters/<kube_path>/kubeconfig
+    Creates ~/.aoc/clusters/<kube_name> directory if not exist
+    overwrite ~/.aoc/clusters/<kube_name>/kubeconfig
     """
     dir_path = os.path.join(CLUSTERS_PATH, kube_name)
     config_path = os.path.join(dir_path, 'kubeconfig')
