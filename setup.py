@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as readme_file:
 
 setuptools.setup(
     name="aoc",
-    version="1.0.0",
+    version="1.0.1",
     author="Aviel Yosef",
     author_email="Avielyo10@gmail.com",
     description="Multi-cluster management tool",
