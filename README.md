@@ -3,7 +3,17 @@
 My multi-cluster management tool
 
 This basically a wrapper around `oc` tool with some commands to help managing multiple clusters.  
-So it can be used exactly like `oc`, for example `aoc get pods -A`.
+So it can be used exactly like `oc`, for example `aoc get pods -A`.  
+
+To make it work seamlessly like a regular `oc`, create an alias under your shell configuration.
+```bash
+# bash
+echo "alias oc=aoc" >> ~/.bashrc
+source ~/.bashrc
+# zsh
+echo "alias oc=aoc" >> ~/.zshrc
+source ~/.zshrc
+```
 
 ## prerequisites
 - python>=3.5
